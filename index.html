@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <button id="pause"></button>
+    <script>
+      let context;
+      let gain;
+      let source;
+      let pausing;
+      let played = false;
+      let isPlaying = false;
+
+      const pause = document.getElementById("pause");
+      pause.innerHTML = "Play";
+      pause.onclick = () => {
+        if (!context) return;
+        pause.innerHTML = isPlaying ? "Play" : "Pause";
+        if (isPlaying) {
+          gain.gain.linearRampToValueAtTime(1, context.currentTime);
+          gain.gain.linearRampToValueAtTime(0, context.currentTime + 1);
+
+          pausing = setTimeout(() => {
+            context.suspend();
+          }, 1000);
+        } else {
+          clearTimeout(pausing);
+          played = true;
+          context.resume();
+          gain.gain.linearRampToValueAtTime(0, context.currentTime);
+          gain.gain.linearRampToValueAtTime(1, context.currentTime + 2);
+        }
+        isPlaying = !isPlaying;
+      };
+
+      window.onmousemove = () => {
+        if (!played) {
+          pause.click();
+        }
+      };
+
+      fetch("/elevator-to-heaven.mp3", {
+        method: "GET",
+        responseType: "arraybuffer",
+      }).then(async (response) => {
+        context = new AudioContext();
+        gain = context.createGain();
+        gain.connect(context.destination);
+        const arrayBuffer = await response.arrayBuffer().catch((err) => {
+          console.log(err);
+        });
+        context.decodeAudioData(arrayBuffer, (buffer) => {
+          source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+          source.connect(gain);
+        });
+      });
+    </script>
+  </body>
+</html>
